@@ -2,13 +2,13 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <DNSServer.h>
-#include <WiFiManager.h> 
+#include <WiFiManager.h>
 WiFiManager wifiManager;
-int IntRst = 15; // Pin D8=15, 
-int Outp = 13; // Pin D7=13, 
+int IntRst = 15; // Pin D8=15,
+int Outp = 13; // Pin D7=13,
 WiFiClient client;
 
-String ledID = "homeplug1";//5760561,9983908,3161443,4037176,
+String ledID = "farmsook1"; //"homeplug1";//5760561,9983908,3161443,4037176,
 String LEDMsg = "";
 String weatherString;
 int updCnt = 0;
@@ -24,28 +24,28 @@ void setup(void) {
   wifiManager.autoConnect("SCS_SMRATPLUG");
   pinMode(IntRst, INPUT);
   pinMode(Outp, OUTPUT);
-  
+
 }
 
 void loop(void) {
   delay(100);
   int stateBtn = digitalRead(IntRst);
-  if (stateBtn == 1){
+  if (stateBtn == 1) {
     Serial.println("Reset : " + stateBtn);
     wifiManager.resetSettings();
-  }else{
+  } else {
     //digitalWrite(Outp, LOW);
-    
+
     // Clock Start
     if (updCnt <= 0) { // ทุก 1 นาทีอัพเดทข้อมูล
       //updCnt = 10;
       updCnt = 1;
       Serial.println("Getting data ...");
       getWeatherData();
-      if (weatherString == "ON"){
+      if (weatherString == "ON") {
         digitalWrite(Outp, LOW);
       }
-      if (weatherString == "OFF"){
+      if (weatherString == "OFF") {
         digitalWrite(Outp, HIGH);
       }
       //getDate();
@@ -53,20 +53,20 @@ void loop(void) {
       Serial.println("Data loaded");
       clkTime = millis();
     }
-    
+
     if (millis() - clkTime > 1500 && dots) { //ทุก 15 วินาทีแสดงสภาพอากาศ
-      String txtShow;      
+      String txtShow;
       txtShow = weatherString;
       //ScrollText(txtShow);
       Serial.println("15 SEC : " + txtShow);
       updCnt--;
       clkTime = millis();
     }
-    if (millis() - dotTime > 5000) { // ความถี่การอัพเดท 
+    if (millis() - dotTime > 5000) { // ความถี่การอัพเดท
       dotTime = millis();
       dots = !dots;
     }
-    
+
   }
 }
 
@@ -74,29 +74,53 @@ void loop(void) {
 
 //const char *weatherHost = "api.openweathermap.org";
 const char *weatherHost = "www.scsthai.com";
+//const char *weatherHost = "27.254.172.48";
+byte server[] = { 27, 254, 172, 48 };
 //http://27.254.172.48/plesk-site-preview/led.scsthai.com/ledjson.php?ledno=9983908
 //ต้องเข้าผ่านไอพีเท่านั้น เว็ย scs โฮสท์มันไม่ให้ใช้ IP
 void getWeatherData()
 {
   //led.scsthai.com/ledjson.php?ledno=3161443
-  Serial.print("connecting to "); Serial.println(weatherHost);
-  if (client.connect(weatherHost, 80)) {
-    client.println(String("GET /plesk-site-preview/led.scsthai.com/ledjson.php?ledno=") + ledID + "\r\n" +
+  Serial.print("connecting to ");
+  Serial.println(weatherHost);
+  if (client.connect(server, 80)) {
+    Serial.println("Connected " + ledID);
+
+    /*
+      client.println(String("GET /plesk-site-preview/led.scsthai.com/ledjson.php?ledno=") + ledID + "\r\n" +
+                   //client.println(String("GET http://27.254.172.48/plesk-site-preview/led.scsthai.com/ledjson.php?ledno=") + ledID + "\r\n" +
                    "Host: " + weatherHost + "\r\nUser-Agent: ArduinoWiFi/1.1\r\n" +
                    "Connection: close\r\n\r\n");
+    */
+      client.println("GET /led.scsthai.com/ledjson.php?ledno=" + ledID + " HTTP/1.0");
+      client.println();
+    if (client.available()) {
+      char c = client.read();
+      Serial.print(c);
+    }
+
+    if (!client.connected()) {
+      Serial.println();
+      Serial.println("disconnecting.");
+      client.stop();
+      for (;;)
+        ;
+    }
+
+
   } else {
     Serial.println("connection failed");
     return;
   }
   String line;
-  
+
   int repeatCounter = 0;
   while (!client.available() && repeatCounter < 10) {
     delay(500);
     Serial.println("w.");
     repeatCounter++;
   }
-  
+
   while (client.connected() && client.available()) {
     char c = client.read();
     if (c == '[' || c == ']') c = ' ';
@@ -105,7 +129,7 @@ void getWeatherData()
   client.stop();
   Serial.print("Line:");
   Serial.println(line);
-  
+
   DynamicJsonBuffer jsonBuf;
   JsonObject &root = jsonBuf.parseObject(line);
   if (!root.success())
@@ -118,7 +142,7 @@ void getWeatherData()
   //weatherString = DD + " " + MM + " " + YY + " ";
   weatherString = LEDMsg;
   //Serial.println(weatherString);
-  
+
   /*
     weatherDescription = root["weather"]["description"].as<String>();
     weatherDescription.toLowerCase();
