@@ -3,6 +3,8 @@
   - เพิ่มส่วน json รับค่ามากกว่า 1 object
   - ไม่ได้ใช้ Json Object แต่ใช้ SubString แทนเลย
   - ใช้กับไฟสะพาน และมอเตอร์ปั้ม
+  - ทำงานร่วมกับ http://led.scsthai.com/ledjson_farmsook_multi_switch.php?ledno=farmsook2&ledno2=farmsook3
+  
 */
 //#include <ArduinoJson.h>
 #include <ESP8266WiFi.h>

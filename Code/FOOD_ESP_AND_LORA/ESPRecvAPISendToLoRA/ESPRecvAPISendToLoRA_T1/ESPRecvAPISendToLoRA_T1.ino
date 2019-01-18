@@ -1,8 +1,19 @@
 /*
-  - ปรับปรุงจากเวอร์ชั่น สวิทช์ 1 ตัว
-  - เพิ่มส่วน json รับค่ามากกว่า 1 object
-  - ไม่ได้ใช้ Json Object แต่ใช้ SubString แทนเลย
-  - ใช้กับไฟสะพาน และมอเตอร์ปั้ม
+  - แก้ไขจากเวอร์ชั่นใช้ที่บ้าน มีเครื่องหมาย [] มาจาก php แก้ที่ php file ไม่ให้มี []
+  - Relay active LOW ต้องระวังตรงเงื่อนไข if else
+  - host ใช้เป็น led.scsthai.com ได้เลย
+  - url แก้ตามช้งานจริง
+  - แก้ไขให้หน่วงเวลาแค่ 3 วินาที
+  - เพิ่ม ให้ใช้กับ ไฟสะพาน และมอเตอร์ได้
+  - LED Blink with out delay
+  - แก้ไข ไฟกระพริบ ให้ทำงานเฉพาะตอนเปิด Servo
+  - เพิ่ม Servo.detach หลังจากจบทำงาน
+  - ทำงานได้ปกติ แต่จะย้ายไปทำงานบน LORA เนื่องจาก Wifi Router รองรับอค่ 5 Clients
+*/
+/*
+  - ปรับปรุงจากเวอร์ชั่น สวิทช์ 1 ตัว ใช้กับไฟสะพาน และมอเตอร์ปั้ม from : FARMSOOK_FOOD_Servo_V3.ino
+  - ใช้กับการให้อาหารทั้ง 3 กล่อง
+  - ทำงานร่วมกับ API : http://led.scsthai.com/ledjson_farmsook_multi_foods.php?ledno=farmsook4&ledno2=farmsook5&ledno3=farmsook6
 */
 //#include <ArduinoJson.h>
 #include <ESP8266WiFi.h>
@@ -11,12 +22,16 @@
 #include <WiFiManager.h>
 WiFiManager wifiManager;
 int IntRst = 15; // Pin D8=15,
+/*
 int Outp = 13; // Pin D7=13,
 int Outp2 = 12; // Pin D6=12,
+int Outp3 = 12; // Pin D6=12,
+*/
 WiFiClient client;
 
-String ledID = "farmsook2";//5760561,9983908,3161443,4037176,
-String ledID2 = "farmsook3";
+String ledID = "farmsook4";//5760561,9983908,3161443,4037176,
+String ledID2 = "farmsook5";
+String ledID3 = "farmsook6";
 String LEDMsg = "";
 String LEDMsg2 = "";
 
@@ -32,11 +47,7 @@ void setup(void) {
   delay(100);
   Serial.begin(115200);
   wifiManager.autoConnect("SCS_SMARTPLUG");
-  pinMode(IntRst, INPUT);
-  pinMode(Outp, OUTPUT);
-  digitalWrite(Outp, LOW);
-  pinMode(Outp2, OUTPUT);
-  digitalWrite(Outp2, LOW);
+  pinMode(IntRst, INPUT); 
 }
 
 const char* host = "led.scsthai.com";
@@ -69,7 +80,7 @@ void loop(void) {
         return;
       }
       ///ledjson_farmsook_multi_switch.php?ledno=farmsook2&ledno2=farmsook3
-      String url = "/ledjson_farmsook_multi_switch.php?ledno=" + ledID + "&ledno2=" + ledID2 + ""; // แก้ไขใหม่ ไม่ให้ php ส่ง [] ไปใน json
+      String url = "/ledjson_farmsook_multi_foods.php?ledno=" + ledID + "&ledno2=" + ledID2 + "&ledno3=" + ledID3 + ""; // แก้ไขใหม่ ไม่ให้ php ส่ง [] ไปใน json
 
       Serial.print("Requesting URL: ");
       Serial.println(url);
@@ -93,35 +104,46 @@ void loop(void) {
       }
 
       Serial.println();
-      //line = "{\"ledno\":\"farmsook2\",\"msg\":\"OFF\",\"secoff\":\"0\"},{\"ledno\":\"farmsook3\",\"msg\":\"OFF\",\"secoff\":\"0\"}";
+      //line = {\"ledno\":\"farmsook4\",\"msg\":\"OFF\",\"secoff\":\"0\"},{\"ledno\":\"farmsook5\",\"msg\":\"OFF\",\"secoff\":\"0\"},{\"ledno\":\"farmsook6\",\"msg\":\"OFF\",\"secoff\":\"0\"}
       Serial.print("Line:");
       Serial.println(line);
 
       String txtSw1 = getValue(line, ',', 1);
       String txtSw2 = getValue(line, ',', 4);
+      String txtSw3 = getValue(line, ',', 7);
       
       String LEDMsg = getValue(txtSw1, '"', 3);
       String LEDMsg2 = getValue(txtSw2, '"', 3);
-
-      Serial.println(LEDMsg);
-      Serial.println(LEDMsg2);
+      String LEDMsg3 = getValue(txtSw3, '"', 3);
+    
+      Serial.println("SW1:" + LEDMsg);
+      Serial.println("SW2:" + LEDMsg2);
+      Serial.println("SW3:" + LEDMsg3);
       Serial.println("closing connection");
 
       if (LEDMsg == "ON") { //On เป็น LOW เพราะ ใช้ Solid State Active Low
-        digitalWrite(Outp, LOW);
+        //-->digitalWrite(Outp, LOW);
         Serial.println("SW1 ON");
       }
       if (LEDMsg == "OFF") {
-        digitalWrite(Outp, HIGH);
+        //-->digitalWrite(Outp, HIGH);
         Serial.println("SW1 OFF");
       }
       if (LEDMsg2 == "ON") { //On เป็น LOW เพราะ ใช้ Solid State Active Low
-        digitalWrite(Outp2, LOW);
+        //-->digitalWrite(Outp2, LOW);
         Serial.println("SW2 ON");
       }
       if (LEDMsg2 == "OFF") {
-        digitalWrite(Outp2, HIGH);
+        //-->digitalWrite(Outp2, HIGH);
         Serial.println("SW2 OFF");
+      }
+      if (LEDMsg3 == "ON") { //On เป็น LOW เพราะ ใช้ Solid State Active Low
+        //-->digitalWrite(Outp3, LOW);
+        Serial.println("SW3 ON");
+      }
+      if (LEDMsg3 == "OFF") {
+        //-->digitalWrite(Outp3, HIGH);
+        Serial.println("SW3 OFF");
       }
       Serial.println("Data loaded");
     }

@@ -5,6 +5,7 @@
   - url แก้ตามช้งานจริง
   - แก้ไขให้หน่วงเวลาแค่ 3 วินาที
   - เพิ่ม ให้ใช้กับ ไฟสะพาน และมอเตอร์ได้
+  - LED Blink with out delay
 */
 #include <ArduinoJson.h>
 #include <ESP8266WiFi.h>
@@ -18,8 +19,12 @@
 WiFiManager wifiManager;
 int IntRst = 15; // Pin D8=15,
 int Outp = 13; // Pin D7=13,
-
 WiFiClient client;
+
+const int ledPin =  LED_BUILTIN;
+int ledState = LOW; 
+unsigned long previousMillis = 0; 
+const long interval = 200; 
 
 String ledID = "farmsook5";//5760561,9983908,3161443,4037176,
 String LEDMsg = "";
@@ -41,7 +46,7 @@ Servo Servo1;
 void setup(void) {
   delay(100);
   Serial.begin(115200);
-  pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(ledPin, OUTPUT);
 
   wifiManager.autoConnect("SCS_SMARTPLUG");
   pinMode(IntRst, INPUT);
@@ -143,15 +148,29 @@ void loop(void) {
       }
       Serial.println("Data loaded");
     }
-    digitalWrite(LED_BUILTIN, LOW);
     if (millis() - dotTime > 2000) { // ความถี่การอัพเดท
       dotTime = millis();
       dots = !dots;
       updCnt--;
-      digitalWrite(LED_BUILTIN, HIGH);
     }
 
   }
   //
+   unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillis >= interval) {
+    // save the last time you blinked the LED
+    previousMillis = currentMillis;
+
+    // if the LED is off turn it on and vice-versa:
+    if (ledState == LOW) {
+      ledState = HIGH;
+    } else {
+      ledState = LOW;
+    }
+
+    // set the LED with the ledState of the variable:
+    digitalWrite(ledPin, ledState);
+  }
 }
 
